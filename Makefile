@@ -1,4 +1,5 @@
-.PHONY: install test lint format train evaluate clean
+.PHONY: install test lint format train evaluate collect clean \
+        docker-build docker-build-dev docker-run docker-dev docker-shell docker-clean
 
 install:
 	pip install -e ".[dev]"
@@ -26,3 +27,25 @@ clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null; true
 	find . -name "*.pyc" -delete
 	rm -rf dist/ build/ *.egg-info/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+docker-build:
+	docker build -f docker/Dockerfile -t physicalai:latest .
+
+docker-build-dev: docker-build
+	docker build -f docker/Dockerfile.dev -t physicalai:dev .
+
+docker-run:
+	docker compose run --rm physicalai
+
+docker-dev:
+	docker compose up physicalai-dev
+
+docker-shell:
+	docker compose run --rm physicalai bash
+
+docker-cpu:
+	docker compose run --rm physicalai-cpu bash
+
+docker-clean:
+	docker compose down --rmi local --volumes

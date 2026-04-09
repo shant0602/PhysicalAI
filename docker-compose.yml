@@ -1,0 +1,60 @@
+services:
+
+  # ── Inference / training (GPU) ─────────────────────────────────────────────
+  physicalai:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: physicalai:latest
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - HF_HOME=/root/.cache/huggingface
+      - WANDB_API_KEY=${WANDB_API_KEY:-}        # set in .env or shell
+    volumes:
+      - .:/workspace                             # live code sync
+      - hf-cache:/root/.cache/huggingface        # persists model weights
+    working_dir: /workspace
+    ipc: host                                    # needed for multi-GPU / shared memory
+    stdin_open: true
+    tty: true
+
+  # ── Development (GPU + Jupyter) ────────────────────────────────────────────
+  physicalai-dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    image: physicalai:dev
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - HF_HOME=/root/.cache/huggingface
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+    volumes:
+      - .:/workspace
+      - hf-cache:/root/.cache/huggingface
+    ports:
+      - "8888:8888"                              # Jupyter Lab
+    working_dir: /workspace
+    ipc: host
+
+  # ── CPU-only (no GPU — for local Mac dev, import/config testing) ───────────
+  physicalai-cpu:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: physicalai:latest
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+    volumes:
+      - .:/workspace
+      - hf-cache:/root/.cache/huggingface
+    working_dir: /workspace
+
+# ── Named volumes ──────────────────────────────────────────────────────────────
+volumes:
+  hf-cache:
+    # HuggingFace model weights — persisted across container restarts
+    # To clear: docker volume rm physicalai_hf-cache

@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PhysicalAI — Development Image
+#
+# Extends the base image with dev tools: Jupyter, ruff, mypy, pytest.
+#
+# Build:
+#   docker build -f docker/Dockerfile.dev -t physicalai:dev .
+#
+# Run Jupyter:
+#   docker run --gpus all -p 8888:8888 \
+#     -v ~/.cache/huggingface:/root/.cache/huggingface \
+#     -v $(pwd):/workspace \
+#     physicalai:dev jupyter lab --ip=0.0.0.0 --allow-root --no-browser
+# ─────────────────────────────────────────────────────────────────────────────
+
+FROM physicalai:latest
+
+# Dev tools
+RUN pip install --quiet \
+    pytest>=8.0 \
+    pytest-cov>=5.0 \
+    ruff>=0.4 \
+    mypy>=1.9 \
+    ipykernel>=6.29 \
+    jupyterlab>=4.0 \
+    ipywidgets>=8.0 \
+    matplotlib>=3.8
+
+# Expose Jupyter port
+EXPOSE 8888
+
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--allow-root", "--no-browser", "--NotebookApp.token=''"]
