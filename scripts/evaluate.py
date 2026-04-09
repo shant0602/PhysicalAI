@@ -68,10 +68,7 @@ def main() -> None:
     parser = build_parser()
     args = parser.parse_args()
 
-    # Defer heavy imports so --help is instant
-    from PIL import Image
-    from physicalai.inference import ACTION_AXES, OpenVLAPolicy
-    from physicalai.models.vla import OpenVLAModel
+    # Light imports first — no torch, no model pulled in yet
     from physicalai.utils.config import OpenVLAConfig
     from physicalai.utils.logging import get_logger
 
@@ -99,6 +96,11 @@ def main() -> None:
     except ValueError as e:
         log.error("%s", e)
         sys.exit(1)
+
+    # Heavy imports — torch and model chain — only after config is validated
+    from PIL import Image
+    from physicalai.inference import ACTION_AXES, OpenVLAPolicy
+    from physicalai.models.vla import OpenVLAModel
 
     # Load image
     image_path = Path(args.image)

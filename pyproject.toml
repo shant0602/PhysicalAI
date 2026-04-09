@@ -1,12 +1,12 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "physicalai"
 version = "0.1.0"
 description = "Embodied AI research: LLMs, VLMs, and Vision Language Action models"
-authors = [{ name = "Shantanu Singh", email = "shant0602@github" }]
+authors = [{ name = "Shantanu Singh" }]
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.10"
 dependencies = [
