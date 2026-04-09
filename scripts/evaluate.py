@@ -69,8 +69,9 @@ def main() -> None:
     args = parser.parse_args()
 
     # Defer heavy imports so --help is instant
-    from physicalai.inference.policy import ACTION_AXES, OpenVLAPolicy
-    from physicalai.models.vla.openvla import OpenVLAModel
+    from PIL import Image
+    from physicalai.inference import ACTION_AXES, OpenVLAPolicy
+    from physicalai.models.vla import OpenVLAModel
     from physicalai.utils.config import OpenVLAConfig
     from physicalai.utils.logging import get_logger
 
@@ -105,7 +106,6 @@ def main() -> None:
         log.error("Image not found: %s", image_path)
         sys.exit(1)
 
-    from PIL import Image
     image = Image.open(image_path).convert("RGB")
     log.info("Loaded image: %s (%dx%d)", image_path.name, *image.size)
 

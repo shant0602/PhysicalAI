@@ -3,7 +3,7 @@ from __future__ import annotations
 import numpy as np
 from PIL import Image
 
-from physicalai.models.vla.openvla import OpenVLAModel
+from physicalai.models.vla import OpenVLAModel
 
 ACTION_AXES = ["dx", "dy", "dz", "droll", "dpitch", "dyaw", "gripper"]
 

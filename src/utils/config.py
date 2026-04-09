@@ -7,6 +7,11 @@ from typing import Literal
 
 import yaml
 
+_log = logging.getLogger(__name__)
+
+# Devices that do not support bfloat16/float16 reliably
+_NON_CUDA_DEVICES = ("cpu", "mps")
+
 
 @dataclasses.dataclass
 class OpenVLAConfig:
@@ -28,10 +33,12 @@ class OpenVLAConfig:
                 f"quantize=True requires a CUDA device. Got device='{self.device}'. "
                 "Use --device cuda:0 or remove --quantize."
             )
-        if self.device == "cpu" and self.dtype != "float32":
-            warnings.warn(
-                f"dtype='{self.dtype}' is not supported on CPU. "
-                "Switching to float32. Pass --dtype float32 to silence this warning.",
-                stacklevel=2,
+        _is_non_cuda = not self.device.startswith("cuda")
+        if _is_non_cuda and self.dtype != "float32":
+            msg = (
+                f"dtype='{self.dtype}' is not reliably supported on device='{self.device}'. "
+                "Switching to float32. Pass --dtype float32 to silence this warning."
             )
+            warnings.warn(msg, stacklevel=2)
+            _log.warning(msg)
             self.dtype = "float32"

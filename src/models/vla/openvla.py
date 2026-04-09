@@ -85,13 +85,22 @@ class OpenVLAModel:
             np.ndarray of shape (7,) — [dx, dy, dz, droll, dpitch, dyaw, gripper]
         """
         if self._model is None or self._processor is None:
-            raise RuntimeError("Model not loaded. Call .load() first.")
+            raise RuntimeError(
+                f"Model '{self._config.model_id}' is not loaded. Call .load() first."
+            )
 
         key = unnorm_key or self._config.unnorm_key
         prompt = _PROMPT_TEMPLATE.format(instruction=instruction)
-        dtype = _DTYPE_MAP[self._config.dtype]
 
-        inputs = self._processor(prompt, image).to(self._config.device, dtype=dtype)
+        inputs = self._processor(text=prompt, images=image, return_tensors="pt")
+
+        # Quantized models handle dtype internally — only cast for non-quantized
+        if not self._config.quantize:
+            dtype = _DTYPE_MAP[self._config.dtype]
+            inputs = inputs.to(self._config.device, dtype=dtype)
+        else:
+            inputs = inputs.to(self._config.device)
+
         action: np.ndarray = self._model.predict_action(
             **inputs, unnorm_key=key, do_sample=False
         )
