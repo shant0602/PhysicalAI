@@ -33,5 +33,13 @@ data/
 .idea/
 .vscode/
 
-# Secrets
+# Secrets — all variants
 .env
+.env.*
+.env.local
+.env.production
+secrets/
+secrets.yaml
+secrets.yml
+*.pem
+*.key

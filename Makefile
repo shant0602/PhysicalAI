@@ -36,13 +36,13 @@ docker-build-dev: docker-build
 	docker build -f docker/Dockerfile.dev -t physicalai:dev .
 
 docker-run:
-	docker compose run --rm physicalai
+	docker compose --profile gpu run --rm physicalai
 
 docker-dev:
-	docker compose up physicalai-dev
+	docker compose --profile gpu up physicalai-dev
 
 docker-shell:
-	docker compose run --rm physicalai bash
+	docker compose --profile gpu run --rm physicalai bash
 
 docker-cpu:
 	docker compose run --rm physicalai-cpu bash
