@@ -45,6 +45,32 @@ services:
     working_dir: /workspace
     ipc: host
 
+  # ── LoRA fine-tuning (GPU only) ───────────────────────────────────────────
+  # Use: docker compose --profile gpu run physicalai-train
+  #  or: make docker-train
+  physicalai-train:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: physicalai:latest
+    runtime: nvidia
+    profiles: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - HF_HOME=/home/appuser/.cache/huggingface
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - .:/workspace
+      - hf-cache:/home/appuser/.cache/huggingface
+      - ./checkpoints:/workspace/checkpoints   # persist training outputs
+    working_dir: /workspace
+    ipc: host
+    command: >
+      scripts/train.py
+      --config configs/training/openvla_lora.yaml
+
   # ── CPU-only (Mac local dev — import/config/unit testing, no GPU needed) ──
   # Use: docker compose run physicalai-cpu bash
   physicalai-cpu:

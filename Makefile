@@ -38,6 +38,9 @@ docker-build-dev: docker-build
 docker-run:
 	docker compose --profile gpu run --rm physicalai
 
+docker-train:
+	docker compose --profile gpu run --rm physicalai-train
+
 docker-dev:
 	docker compose --profile gpu up physicalai-dev
 
@@ -46,6 +49,15 @@ docker-shell:
 
 docker-cpu:
 	docker compose run --rm physicalai-cpu bash
+
+docker-cpu-test:
+	docker compose run --rm physicalai-cpu \
+		python scripts/train.py \
+		--config configs/training/openvla_lora.yaml \
+		--data.max_samples 10 \
+		--training.num_epochs 1 \
+		--model.device cpu \
+		--model.dtype float32
 
 docker-clean:
 	docker compose down --rmi local --volumes

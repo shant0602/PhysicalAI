@@ -67,5 +67,8 @@ USER appuser
 ENV HF_HOME=/home/appuser/.cache/huggingface
 VOLUME ["/home/appuser/.cache/huggingface"]
 
-# ── Default command ───────────────────────────────────────────────────────────
-CMD ["python", "scripts/evaluate.py", "--help"]
+# ── Entrypoint: override CMD at runtime to switch between inference/training ──
+# Inference: docker run physicalai:latest scripts/evaluate.py --config configs/model/openvla.yaml
+# Training:  docker run physicalai:latest scripts/train.py --config configs/training/openvla_lora.yaml
+ENTRYPOINT ["python"]
+CMD ["scripts/evaluate.py", "--help"]
