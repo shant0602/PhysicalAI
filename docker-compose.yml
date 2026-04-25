@@ -82,7 +82,7 @@ services:
       --batch_size 16
       --learning_rate 5e-4
       --wandb_project physicalai-openvla
-      --wandb_entity ${WANDB_ENTITY}
+      --wandb_entity ${WANDB_ENTITY:-}
 
   # ── CPU-only (Mac local dev — import/config/unit testing, no GPU needed) ──
   # Use: docker compose run --rm physicalai-cpu pytest tests/ -v

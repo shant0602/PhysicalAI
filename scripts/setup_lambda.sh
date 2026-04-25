@@ -27,6 +27,9 @@ echo "Initialising git submodules..."
 git submodule update --init --recursive
 
 # 3. Install — follow OpenVLA README exactly
+# NOTE: flash-attn requires torch at build time (--no-build-isolation).
+# Lambda Labs instances pre-install PyTorch; on other hosts install it first:
+#   pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
 echo "Installing OpenVLA and dependencies..."
 pip install -e third_party/openvla --no-deps
 pip install packaging ninja

@@ -78,7 +78,7 @@ def download_oxe(
     raw_dest = out_dir / dataset
     if not raw_dest.exists():
         out_dir.mkdir(parents=True, exist_ok=True)
-        cmd = ["gsutil", "-m", "cp", "-r", f"{GCS_BUCKET}/{dataset}/{version}", str(out_dir)]
+        cmd = ["gsutil", "-m", "cp", "-r", f"{GCS_BUCKET}/{dataset}", str(out_dir)]
         print(f"Downloading {dataset}:\n  {' '.join(cmd)}")
         if not dry_run:
             subprocess.run(cmd, check=True)

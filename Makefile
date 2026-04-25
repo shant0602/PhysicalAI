@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: install test lint format evaluate collect clean \
         submodule-init download-dataset \
         train train-dry-run deploy \
@@ -46,13 +48,7 @@ download-dataset:
 
 # ── Training (calls OpenVLA's finetune.py via scripts/train.sh) ───────────────
 train:
-	source $(CONFIG_ENV) && NUM_GPUS=$(NUM_GPUS) bash scripts/train.sh \
-	  --vla_path "openvla/openvla-7b" \
-	  --dataset_name $(DATASET) \
-	  --wandb_entity "$(WANDB_ENTITY)" \
-	  --lora_rank 32 \
-	  --batch_size 16 \
-	  --learning_rate 5e-4
+	source $(CONFIG_ENV) && DATASET_NAME=$(DATASET) WANDB_ENTITY=$(WANDB_ENTITY) NUM_GPUS=$(NUM_GPUS) bash scripts/train.sh
 
 train-dry-run:
 	bash scripts/train.sh --help
