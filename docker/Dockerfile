@@ -55,7 +55,7 @@ COPY --chown=appuser:appuser pyproject.toml ./
 COPY --chown=appuser:appuser src/ ./src/
 
 # pip sees torch already satisfies >=2.2 and skips it — no manual dep listing
-RUN pip install -e ".[inference]"
+RUN pip install -e ".[inference,dev]"
 
 # Copy remaining project files (scripts, configs, etc.)
 COPY --chown=appuser:appuser . .

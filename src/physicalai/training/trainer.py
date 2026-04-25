@@ -10,7 +10,7 @@ from peft import LoraConfig, get_peft_model
 from torch.utils.data import DataLoader
 from transformers import AutoModelForVision2Seq, AutoProcessor, get_cosine_schedule_with_warmup
 
-from physicalai.training.data.bridge_dataset import BridgeDatasetConfig, BridgeV2Dataset
+from physicalai.training.datasets.bridge_dataset import BridgeDatasetConfig, BridgeV2Dataset
 from physicalai.utils.config import OpenVLAConfig
 from physicalai.utils.logging import get_logger
 

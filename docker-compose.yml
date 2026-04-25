@@ -72,12 +72,13 @@ services:
       --config configs/training/openvla_lora.yaml
 
   # ── CPU-only (Mac local dev — import/config/unit testing, no GPU needed) ──
-  # Use: docker compose run physicalai-cpu bash
+  # Use: docker compose run --rm physicalai-cpu pytest tests/ -v
   physicalai-cpu:
     build:
       context: .
       dockerfile: docker/Dockerfile
     image: physicalai:latest
+    entrypoint: ["python", "-m"]
     environment:
       - HF_HOME=/home/appuser/.cache/huggingface
     volumes:

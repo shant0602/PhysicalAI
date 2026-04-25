@@ -7,7 +7,7 @@ import pytest
 import torch
 from PIL import Image
 
-from physicalai.training.data.bridge_dataset import BridgeDatasetConfig, BridgeV2Dataset
+from physicalai.training.datasets.bridge_dataset import BridgeDatasetConfig, BridgeV2Dataset
 
 
 def _make_fake_hf_dataset(n: int = 5) -> MagicMock:
@@ -42,7 +42,7 @@ def _make_mock_processor() -> MagicMock:
 
 @pytest.fixture
 def fake_dataset():
-    with patch("physicalai.training.data.bridge_dataset.load_dataset") as mock_load:
+    with patch("physicalai.training.datasets.bridge_dataset.load_dataset") as mock_load:
         mock_load.return_value = _make_fake_hf_dataset(5)
         cfg = BridgeDatasetConfig(max_samples=5)
         processor = _make_mock_processor()
