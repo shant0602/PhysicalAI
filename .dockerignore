@@ -43,3 +43,9 @@ secrets.yaml
 secrets.yml
 *.pem
 *.key
+
+# Training outputs
+datasets/
+runs/
+adapter-tmp/
+checkpoints/

@@ -1,3 +1,3 @@
-from physicalai.training.datasets.bridge_dataset import BridgeDatasetConfig, BridgeV2Dataset
-
-__all__ = ["BridgeDatasetConfig", "BridgeV2Dataset"]
+# Training data loading is handled by OpenVLA's RLDS pipeline.
+# See third_party/openvla/vla-scripts/finetune.py.
+__all__: list = []

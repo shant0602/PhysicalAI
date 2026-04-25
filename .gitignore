@@ -60,3 +60,13 @@ logs/
 # Distribution / packaging
 *.tar.gz
 *.zip
+
+# Training outputs (OpenVLA writes here)
+/datasets/
+/runs/
+/adapter-tmp/
+/checkpoints/
+
+# Submodule build artifacts
+third_party/openvla/*.egg-info/
+third_party/rlds_dataset_mod/*.egg-info/

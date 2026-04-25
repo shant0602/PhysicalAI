@@ -45,14 +45,14 @@ services:
     working_dir: /workspace
     ipc: host
 
-  # ── LoRA fine-tuning (GPU only) ───────────────────────────────────────────
+  # ── LoRA fine-tuning via OpenVLA (GPU only) ───────────────────────────────
   # Use: docker compose --profile gpu run physicalai-train
   #  or: make docker-train
   physicalai-train:
     build:
       context: .
-      dockerfile: docker/Dockerfile
-    image: physicalai:latest
+      dockerfile: docker/Dockerfile.train
+    image: physicalai:train
     runtime: nvidia
     profiles: [gpu]
     environment:
@@ -60,16 +60,29 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - HF_HOME=/home/appuser/.cache/huggingface
       - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - WANDB_ENTITY=${WANDB_ENTITY:-}
       - HF_TOKEN=${HF_TOKEN:-}
+      - NUM_GPUS=${NUM_GPUS:-1}
     volumes:
       - .:/workspace
       - hf-cache:/home/appuser/.cache/huggingface
-      - ./checkpoints:/workspace/checkpoints   # persist training outputs
+      - ./runs:/workspace/runs
+      - ./adapter-tmp:/workspace/adapter-tmp
+      - ${DATASET_DIR:-./datasets}:/workspace/datasets
     working_dir: /workspace
     ipc: host
+    shm_size: "16gb"
+    # Calls OpenVLA's finetune.py via our thin shell wrapper.
+    # Override dataset_name and wandb_entity via env or CLI args.
     command: >
-      scripts/train.py
-      --config configs/training/openvla_lora.yaml
+      scripts/train.sh
+      --vla_path openvla/openvla-7b
+      --dataset_name ${DATASET:-bridge_orig}
+      --lora_rank 32
+      --batch_size 16
+      --learning_rate 5e-4
+      --wandb_project physicalai-openvla
+      --wandb_entity ${WANDB_ENTITY}
 
   # ── CPU-only (Mac local dev — import/config/unit testing, no GPU needed) ──
   # Use: docker compose run --rm physicalai-cpu pytest tests/ -v

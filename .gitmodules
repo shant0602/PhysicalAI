@@ -1,0 +1,6 @@
+[submodule "third_party/openvla"]
+	path = third_party/openvla
+	url = https://github.com/openvla/openvla
+[submodule "third_party/rlds_dataset_mod"]
+	path = third_party/rlds_dataset_mod
+	url = https://github.com/moojink/rlds_dataset_mod
