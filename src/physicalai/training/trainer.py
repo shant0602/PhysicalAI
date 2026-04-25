@@ -11,7 +11,6 @@ from torch.utils.data import DataLoader
 from transformers import AutoModelForVision2Seq, AutoProcessor, get_cosine_schedule_with_warmup
 
 from physicalai.training.data.bridge_dataset import BridgeDatasetConfig, BridgeV2Dataset
-from physicalai.utils.checkpoint import save_checkpoint
 from physicalai.utils.config import OpenVLAConfig
 from physicalai.utils.logging import get_logger
 
@@ -25,6 +24,7 @@ class LoRATrainingConfig:
     lora_alpha: int = 32
     target_modules: list[str] = dataclasses.field(default_factory=lambda: ["q_proj", "v_proj"])
     lora_dropout: float = 0.05
+    bias: str = "none"
 
     # Paths
     output_dir: str = "checkpoints/openvla_lora"
@@ -57,6 +57,14 @@ class OpenVLALoRATrainer:
         self._tc = train_config
         self._dc = data_config
 
+    def _save_adapter(self, model: torch.nn.Module, path: Path, metadata: dict) -> None:
+        """Save only the LoRA adapter weights (~28MB), not the full base model."""
+        model.save_pretrained(path)
+        # Also write metadata alongside the adapter
+        import json
+        (path / "training_metadata.json").write_text(json.dumps(metadata))
+        _log.info("LoRA adapter saved to %s", path)
+
     def train(self) -> None:
         torch.manual_seed(self._tc.seed)
 
@@ -87,7 +95,7 @@ class OpenVLALoRATrainer:
             lora_alpha=self._tc.lora_alpha,
             target_modules=self._tc.target_modules,
             lora_dropout=self._tc.lora_dropout,
-            bias="none",
+            bias=self._tc.bias,
         )
         model = get_peft_model(model, lora_cfg)
         model.print_trainable_parameters()
@@ -129,13 +137,18 @@ class OpenVLALoRATrainer:
 
             for step, batch in enumerate(loader):
                 batch = {k: v.to(self._mc.device) for k, v in batch.items()}
-                batch.pop("labels")  # action labels not used for LM loss
+                # Pop action labels — not used for LM loss; model is trained
+                # on next-token prediction over the action token sequence.
+                batch.pop("labels")
 
                 outputs = model(**batch, labels=batch["input_ids"])
                 loss = outputs.loss / self._tc.gradient_accumulation_steps
                 loss.backward()
 
-                if (step + 1) % self._tc.gradient_accumulation_steps == 0:
+                is_accumulation_step = (step + 1) % self._tc.gradient_accumulation_steps == 0
+                is_last_step = step == len(loader) - 1
+
+                if is_accumulation_step or is_last_step:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self._tc.max_grad_norm)
                     optimizer.step()
                     scheduler.step()
@@ -151,24 +164,19 @@ class OpenVLALoRATrainer:
                         )
 
                     if global_step % self._tc.save_every_n_steps == 0:
-                        ckpt_path = output_dir / f"step_{global_step}.pt"
-                        save_checkpoint(
-                            model,
-                            ckpt_path,
+                        # Save only the LoRA adapter weights (~28MB), not the full base model
+                        ckpt_dir = output_dir / f"step_{global_step}"
+                        self._save_adapter(
+                            model, ckpt_dir,
                             metadata={"step": global_step, "epoch": epoch, "loss": loss.item()},
                         )
 
-        # --- Final saves ---
-        save_checkpoint(
-            model,
-            output_dir / "final.pt",
+        # --- Final save ---
+        final_dir = output_dir / "final"
+        self._save_adapter(
+            model, final_dir,
             metadata={"step": global_step, "epoch": self._tc.num_epochs},
         )
-
-        # Save LoRA adapter weights separately (~28MB, no base model weights)
-        adapter_dir = output_dir / "lora_adapter"
-        model.save_pretrained(adapter_dir)
-        _log.info("LoRA adapter saved to %s", adapter_dir)
 
         wandb.finish()
         _log.info("Training complete. Artifacts at %s", output_dir)

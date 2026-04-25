@@ -13,7 +13,7 @@ lora:
   lora_alpha: 32
   target_modules: ["q_proj", "v_proj"]
   lora_dropout: 0.05
-  bias: "none"
+  bias: "none"    # passed through to LoRATrainingConfig.bias → peft.LoraConfig
 
 data:
   split: "train"
@@ -26,7 +26,9 @@ training:
   batch_size: 4
   gradient_accumulation_steps: 4   # effective batch = 16
   learning_rate: 2.0e-4
+  weight_decay: 0.01
   warmup_ratio: 0.03
+  max_grad_norm: 1.0
   save_every_n_steps: 200
   log_every_n_steps: 10
   seed: 42

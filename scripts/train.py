@@ -11,17 +11,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import sys
 from typing import Any
 
 import yaml
-
-from physicalai.training.data.bridge_dataset import BridgeDatasetConfig
-from physicalai.training.trainer import LoRATrainingConfig, OpenVLALoRATrainer
-from physicalai.utils.config import OpenVLAConfig
-from physicalai.utils.logging import get_logger
-
-_log = get_logger(__name__)
 
 
 def _apply_overrides(cfg: dict[str, Any], overrides: list[str]) -> dict[str, Any]:
@@ -29,6 +21,9 @@ def _apply_overrides(cfg: dict[str, Any], overrides: list[str]) -> dict[str, Any
 
     Example: ["--training.learning_rate", "1e-4"] sets cfg["training"]["learning_rate"] = 1e-4
     """
+    import logging
+    _log = logging.getLogger(__name__)
+
     i = 0
     while i < len(overrides):
         key = overrides[i].lstrip("-")
@@ -73,12 +68,20 @@ def main() -> None:
 
     cfg = _apply_overrides(cfg, remaining)
 
+    # Heavy imports deferred until after config parsing so --help is instant
+    from physicalai.training.data.bridge_dataset import BridgeDatasetConfig
+    from physicalai.training.trainer import LoRATrainingConfig, OpenVLALoRATrainer
+    from physicalai.utils.config import OpenVLAConfig
+    from physicalai.utils.logging import get_logger
+
+    _log = get_logger(__name__)
+
     model_cfg = OpenVLAConfig(**cfg.get("model", {}))
     model_cfg.validate()
 
     train_cfg = LoRATrainingConfig(**cfg.get("training", {}))
 
-    lora_keys = {"r", "lora_alpha", "target_modules", "lora_dropout"}
+    lora_keys = {"r", "lora_alpha", "target_modules", "lora_dropout", "bias"}
     lora_overrides = {k: v for k, v in cfg.get("lora", {}).items() if k in lora_keys}
     if lora_overrides:
         train_cfg = LoRATrainingConfig(**{**vars(train_cfg), **lora_overrides})

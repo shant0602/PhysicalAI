@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import numpy as np
+import torch
 import pytest
 from PIL import Image
 
@@ -39,7 +40,7 @@ def test_load_returns_self(cpu_config):
         assert result is model
 
 
-def test_load_calls_from_pretrained_once(cpu_config):
+def test_load_calls_from_pretrained_with_correct_dtype(cpu_config):
     with patch("physicalai.models.vla.openvla.AutoProcessor.from_pretrained") as mock_proc, \
          patch("physicalai.models.vla.openvla.AutoModelForVision2Seq.from_pretrained") as mock_model:
         mock_model.return_value = MagicMock()
@@ -47,8 +48,24 @@ def test_load_calls_from_pretrained_once(cpu_config):
         mock_proc.return_value = MagicMock()
 
         OpenVLAModel(cpu_config).load()
-        mock_model.assert_called_once_with(cpu_config.model_id, trust_remote_code=True, low_cpu_mem_usage=True, torch_dtype=pytest.approx)
+
+        # cpu_config has dtype="float32" — verify the correct torch dtype is passed
+        call_kwargs = mock_model.call_args.kwargs
+        assert call_kwargs["torch_dtype"] == torch.float32
         mock_proc.assert_called_once_with(cpu_config.model_id, trust_remote_code=True)
+
+
+def test_load_calls_from_pretrained_bfloat16():
+    cfg = OpenVLAConfig(device="cpu", dtype="bfloat16", quantize=False)
+    with patch("physicalai.models.vla.openvla.AutoProcessor.from_pretrained"), \
+         patch("physicalai.models.vla.openvla.AutoModelForVision2Seq.from_pretrained") as mock_model:
+        mock_model.return_value = MagicMock()
+        mock_model.return_value.to.return_value = mock_model.return_value
+
+        OpenVLAModel(cfg).load()
+
+        call_kwargs = mock_model.call_args.kwargs
+        assert call_kwargs["torch_dtype"] == torch.bfloat16
 
 
 def test_predict_returns_ndarray(cpu_config, dummy_image):

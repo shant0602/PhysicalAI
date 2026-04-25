@@ -18,7 +18,6 @@ def test_default_config_values():
 
 
 def test_validate_passes_on_cuda(monkeypatch):
-    # Patch torch.cuda.is_available so validate doesn't raise for device strings
     cfg = OpenVLAConfig(device="cuda:0", dtype="bfloat16", quantize=False)
     cfg.validate()  # should not raise
 
@@ -55,3 +54,13 @@ def test_from_yaml_roundtrip(tmp_path):
     assert cfg.dtype == data["dtype"]
     assert cfg.quantize == data["quantize"]
     assert cfg.unnorm_key == data["unnorm_key"]
+
+
+def test_from_yaml_unknown_key_raises(tmp_path):
+    """OpenVLAConfig(**kwargs) raises TypeError on unknown keys — document this behaviour."""
+    data = {"model_id": "openvla/openvla-7b", "unknown_field": "should_fail"}
+    yaml_file = tmp_path / "bad_config.yaml"
+    yaml_file.write_text(yaml.dump(data))
+
+    with pytest.raises(TypeError):
+        OpenVLAConfig.from_yaml(str(yaml_file))
