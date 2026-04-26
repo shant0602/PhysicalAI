@@ -1,10 +1,10 @@
 SHELL := /bin/bash
 
 .PHONY: install test lint format evaluate collect clean \
-        submodule-init download-dataset \
-        train train-dry-run deploy \
+        submodule-init download-dataset download-libero \
+        train train-libero train-dry-run deploy eval-libero \
         docker-build docker-build-dev docker-build-train \
-        docker-run docker-dev docker-shell docker-train docker-cpu docker-cpu-test \
+        docker-run docker-dev docker-shell docker-train docker-train-libero docker-cpu docker-cpu-test \
         docker-clean
 
 OPENVLA_DIR   = third_party/openvla
@@ -46,12 +46,27 @@ submodule-init:
 download-dataset:
 	python scripts/download_dataset.py $(DATASET)
 
+download-libero:
+	python scripts/download_dataset.py libero
+
 # ── Training (calls OpenVLA's finetune.py via scripts/train.sh) ───────────────
 train:
 	source $(CONFIG_ENV) && DATASET_NAME=$(DATASET) WANDB_ENTITY=$(WANDB_ENTITY) NUM_GPUS=$(NUM_GPUS) bash scripts/train.sh
 
+train-libero:
+	source configs/training/libero_lora.env && WANDB_ENTITY=$(WANDB_ENTITY) NUM_GPUS=$(NUM_GPUS) bash scripts/train.sh
+
 train-dry-run:
 	bash scripts/train.sh --help
+
+# ── Evaluation ────────────────────────────────────────────────────────────────
+# Usage: make eval-libero CHECKPOINT=runs/<your-run-dir>
+eval-libero:
+	python third_party/openvla/experiments/robot/libero/run_libero_eval.py \
+		--model_family openvla \
+		--pretrained_checkpoint $(CHECKPOINT) \
+		--task_suite_name libero_spatial \
+		--center_crop True
 
 # ── Deployment (calls OpenVLA's deploy.py via scripts/deploy.sh) ──────────────
 deploy:
@@ -72,6 +87,10 @@ docker-run:
 
 docker-train:
 	docker compose --profile gpu run --rm physicalai-train
+
+docker-train-libero:
+	set -a && source configs/training/libero_lora.env && set +a && \
+	WANDB_ENTITY=$(WANDB_ENTITY) docker compose --profile gpu run --rm physicalai-train
 
 docker-dev:
 	docker compose --profile gpu up physicalai-dev

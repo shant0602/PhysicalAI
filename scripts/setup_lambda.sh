@@ -1,16 +1,19 @@
 #!/bin/bash
-# One-shot Lambda Labs setup and training launcher.
+# One-shot Lambda Labs setup and training launcher (Docker-based).
 # Run this on a fresh Lambda A100 instance:
 #   bash scripts/setup_lambda.sh
+#
+# Or pipe directly from GitHub:
+#   REPO_URL=https://github.com/... WANDB_KEY=... WANDB_ENTITY=... \
+#   bash <(curl -s https://raw.githubusercontent.com/.../scripts/setup_lambda.sh)
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-}"       # set via: REPO_URL=https://github.com/... bash scripts/setup_lambda.sh
-WANDB_KEY="${WANDB_KEY:-}"     # set via: WANDB_KEY=your_key bash scripts/setup_lambda.sh
-WANDB_ENTITY="${WANDB_ENTITY:-}"
-DATASET="${DATASET:-bridge_orig}"
-DATASET_DIR="${DATASET_DIR:-datasets/open-x-embodiment}"
+REPO_URL="${REPO_URL:-}"         # required if not already inside the repo
+WANDB_KEY="${WANDB_KEY:-}"       # W&B API key (or leave blank to login interactively)
+WANDB_ENTITY="${WANDB_ENTITY:-}" # W&B username/team — REQUIRED for training
+DATASET="${DATASET:-libero}"     # 'libero' (~10GB) or 'bridge_orig' (~200GB)
 
-echo "=== PhysicalAI — Lambda Setup ==="
+echo "=== PhysicalAI — Lambda Setup (Docker) ==="
 
 # 1. Clone repo (skip if already inside it)
 if [ ! -f "pyproject.toml" ]; then
@@ -22,47 +25,50 @@ if [ ! -f "pyproject.toml" ]; then
   cd physicalai
 fi
 
-# 2. Initialise submodules (includes third_party/openvla)
+git checkout feature/openvla-training-pipeline 2>/dev/null || true
+
+# 2. Initialise submodules — Dockerfile.train COPYs third_party/ so this must run before docker build
 echo "Initialising git submodules..."
 git submodule update --init --recursive
 
-# 3. Install — follow OpenVLA README exactly
-# NOTE: flash-attn requires torch at build time (--no-build-isolation).
-# Lambda Labs instances pre-install PyTorch; on other hosts install it first:
-#   pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu121
-echo "Installing OpenVLA and dependencies..."
-pip install -e third_party/openvla --no-deps
-pip install packaging ninja
-pip install git+https://github.com/moojink/dlimp
-pip install "flash-attn==2.5.5" --no-build-isolation
-
-# Install physicalai inference layer
-pip install -e ".[inference]"
+# 3. Verify Docker + nvidia-container-toolkit (Lambda ships with both)
+if ! command -v docker > /dev/null 2>&1; then
+  echo "ERROR: Docker not found. Lambda Labs instances should have Docker pre-installed."
+  exit 1
+fi
+if ! docker info 2>/dev/null | grep -q "Runtimes.*nvidia\|nvidia.*Runtimes"; then
+  echo "WARNING: nvidia runtime not detected in Docker. GPU access inside containers may fail."
+  echo "  Try: sudo systemctl restart docker"
+fi
 
 # 4. Log in to W&B
 if [ -n "$WANDB_KEY" ]; then
+  pip install --quiet wandb
   wandb login "$WANDB_KEY"
 else
   echo "WANDB_KEY not set — W&B logging will prompt interactively"
 fi
 
-# 5. Verify GPU
-python -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB')"
+# 5. Verify GPU on host
+python3 -c "import torch; print(f'GPU: {torch.cuda.get_device_name(0)}, VRAM: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB')" \
+  || echo "WARNING: torch GPU check failed — verify CUDA drivers"
 
-# 6. Optional: download dataset
-if [ -n "$DATASET" ]; then
-  echo "Downloading dataset: $DATASET"
-  python scripts/download_dataset.py "$DATASET" --out_dir "$DATASET_DIR"
-fi
+# 6. Download dataset onto host (will be mounted into the container at /workspace/datasets)
+echo "Installing git-lfs and downloading dataset: $DATASET"
+sudo apt-get install -y git-lfs
+git lfs install
+python3 scripts/download_dataset.py "$DATASET"
 
-# 7. Launch training — delegates entirely to OpenVLA's finetune.py
-NUM_GPUS=$(python -c "import torch; print(max(1, torch.cuda.device_count()))")
-echo "Launching training on $NUM_GPUS GPU(s)..."
-bash scripts/train.sh \
-  --vla_path "openvla/openvla-7b" \
-  --dataset_name "$DATASET" \
-  --wandb_entity "$WANDB_ENTITY" \
-  --lora_rank 32 \
-  --batch_size 16 \
-  --learning_rate 5e-4 \
-  "$@"
+# 7. Build the training Docker image (bakes OpenVLA, flash-attn, TF, physicalai)
+echo "Building physicalai:train Docker image..."
+make docker-build-train
+
+# 8. Launch training via Docker
+echo "Starting LoRA fine-tuning inside Docker..."
+set -a
+source configs/training/libero_lora.env
+set +a
+
+WANDB_API_KEY="$WANDB_KEY" \
+WANDB_ENTITY="$WANDB_ENTITY" \
+docker compose --profile gpu run --rm physicalai-train

@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """
-Download OXE datasets for OpenVLA fine-tuning.
+Download datasets for OpenVLA fine-tuning.
 
 Follows the exact download methods documented in the OpenVLA README:
   https://github.com/openvla/openvla#finetuning-openvla
+
+LIBERO (libero):
+  Clones openvla/modified_libero_rlds from HuggingFace via git-lfs (~10GB).
+  Contains all four task suites: libero_spatial_no_noops, libero_object_no_noops,
+  libero_goal_no_noops, libero_10_no_noops.
+  Prerequisites: git-lfs (sudo apt-get install git-lfs)
 
 Bridge V2 (bridge_orig):
   Uses wget from Berkeley RAIL — as shown in OpenVLA's README.
@@ -16,9 +22,10 @@ Prerequisites for OXE datasets:
   make submodule-init   (clones third_party/rlds_dataset_mod)
 
 Usage:
+  python scripts/download_dataset.py libero                         # LIBERO (~10GB)
+  python scripts/download_dataset.py libero --dry_run               # preview command
   python scripts/download_dataset.py bridge_orig --out_dir datasets/open-x-embodiment
   python scripts/download_dataset.py fractal20220817_data
-  python scripts/download_dataset.py bridge_orig --dry_run
 """
 from __future__ import annotations
 
@@ -37,6 +44,40 @@ BRIDGE_URL = "https://rail.eecs.berkeley.edu/datasets/bridge_release/data/tfds/b
 GCS_BUCKET = "gs://gresearch/robotics"
 
 RLDS_MOD_SCRIPT = REPO_ROOT / "third_party" / "rlds_dataset_mod" / "modify_rlds_dataset.py"
+
+# LIBERO: HuggingFace dataset with all four task suites in RLDS format
+LIBERO_HF_REPO = "https://huggingface.co/datasets/openvla/modified_libero_rlds"
+LIBERO_DEST_NAME = "modified_libero_rlds"
+
+
+def download_libero(out_dir: Path, dry_run: bool) -> None:
+    """Clone modified_libero_rlds from HuggingFace via git-lfs (~10GB)."""
+    dest = out_dir / LIBERO_DEST_NAME
+    if dest.exists():
+        print(f"Already exists: {dest}")
+        print(f"Set DATA_ROOT_DIR={dest} and DATASET_NAME=libero_spatial_no_noops in your config.")
+        return
+
+    if not shutil.which("git-lfs") and not dry_run:
+        print(
+            "ERROR: git-lfs not found. Install it first:\n"
+            "  Ubuntu/Lambda: sudo apt-get install -y git-lfs\n"
+            "  macOS:         brew install git-lfs",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Downloading LIBERO from HuggingFace (~10GB) → {dest}")
+    print(f"  git lfs install && git clone {LIBERO_HF_REPO} {dest}")
+    if not dry_run:
+        subprocess.run(["git", "lfs", "install"], check=True)
+        subprocess.run(["git", "clone", LIBERO_HF_REPO, str(dest)], check=True)
+    print(
+        f"Done → {dest}\n"
+        "Set DATA_ROOT_DIR=datasets/modified_libero_rlds and\n"
+        "    DATASET_NAME=libero_spatial_no_noops  (or _object, _goal, _10) in your config."
+    )
 
 
 def download_bridge(out_dir: Path, dry_run: bool) -> None:
@@ -115,9 +156,17 @@ def main() -> None:
     )
     parser.add_argument(
         "dataset",
-        help="'bridge_orig' (wget) or any OXE name like fractal20220817_data (gsutil)",
+        help=(
+            "'libero' (HuggingFace git-lfs, ~10GB), "
+            "'bridge_orig' (wget, ~200GB), "
+            "or any OXE name like fractal20220817_data (gsutil)"
+        ),
     )
-    parser.add_argument("--out_dir", default="datasets/open-x-embodiment")
+    parser.add_argument(
+        "--out_dir",
+        default=None,
+        help="Output directory (default: datasets/modified_libero_rlds for libero, datasets/open-x-embodiment for others)",
+    )
     parser.add_argument(
         "--version",
         default="0.1.0",
@@ -128,10 +177,14 @@ def main() -> None:
     parser.add_argument("--dry_run", action="store_true")
     args = parser.parse_args()
 
-    out_dir = Path(args.out_dir)
-    if args.dataset == "bridge_orig":
+    if args.dataset == "libero":
+        out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "datasets"
+        download_libero(out_dir, args.dry_run)
+    elif args.dataset == "bridge_orig":
+        out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "datasets" / "open-x-embodiment"
         download_bridge(out_dir, args.dry_run)
     else:
+        out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "datasets" / "open-x-embodiment"
         download_oxe(
             args.dataset, args.version, out_dir,
             args.n_workers, args.skip_preprocess, args.dry_run,

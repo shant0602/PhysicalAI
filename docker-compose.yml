@@ -63,6 +63,17 @@ services:
       - WANDB_ENTITY=${WANDB_ENTITY:-}
       - HF_TOKEN=${HF_TOKEN:-}
       - NUM_GPUS=${NUM_GPUS:-1}
+      # Training config — sourced from env (set via libero_lora.env or openvla_lora.env)
+      - DATASET_NAME=${DATASET_NAME:-bridge_orig}
+      - DATA_ROOT_DIR=${DATA_ROOT_DIR:-datasets/open-x-embodiment}
+      - MAX_STEPS=${MAX_STEPS:-200000}
+      - SAVE_STEPS=${SAVE_STEPS:-5000}
+      - SHUFFLE_BUFFER_SIZE=${SHUFFLE_BUFFER_SIZE:-100000}
+      - BATCH_SIZE=${BATCH_SIZE:-16}
+      - LEARNING_RATE=${LEARNING_RATE:-5e-4}
+      - LORA_RANK=${LORA_RANK:-32}
+      - IMAGE_AUG=${IMAGE_AUG:-true}
+      - WANDB_PROJECT=${WANDB_PROJECT:-physicalai-openvla}
     volumes:
       - .:/workspace
       - hf-cache:/home/appuser/.cache/huggingface
@@ -72,17 +83,11 @@ services:
     working_dir: /workspace
     ipc: host
     shm_size: "16gb"
-    # Calls OpenVLA's finetune.py via our thin shell wrapper.
-    # Override dataset_name and wandb_entity via env or CLI args.
-    command: >
-      scripts/train.sh
-      --vla_path openvla/openvla-7b
-      --dataset_name ${DATASET:-bridge_orig}
-      --lora_rank 32
-      --batch_size 16
-      --learning_rate 5e-4
-      --wandb_project physicalai-openvla
-      --wandb_entity ${WANDB_ENTITY:-}
+    # All training config flows through environment variables above.
+    # Source an env file before running to switch datasets:
+    #   set -a && source configs/training/libero_lora.env && set +a
+    #   docker compose --profile gpu run --rm physicalai-train
+    command: scripts/train.sh
 
   # ── CPU-only (Mac local dev — import/config/unit testing, no GPU needed) ──
   # Use: docker compose run --rm physicalai-cpu pytest tests/ -v
