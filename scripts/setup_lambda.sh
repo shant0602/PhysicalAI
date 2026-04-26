@@ -38,6 +38,15 @@ if ! command -v docker > /dev/null 2>&1; then
   echo "ERROR: Docker not found. Lambda Labs instances should have Docker pre-installed."
   exit 1
 fi
+
+# Add current user to docker group if not already a member (avoids permission denied on socket)
+if ! groups | grep -q docker; then
+  echo "Adding $USER to docker group..."
+  sudo usermod -aG docker "$USER"
+  # Re-exec the script under the new group so remaining commands can access Docker
+  exec sg docker "$0" "$@"
+fi
+
 if ! docker info 2>/dev/null | grep -q "Runtimes.*nvidia\|nvidia.*Runtimes"; then
   echo "WARNING: nvidia runtime not detected in Docker. GPU access inside containers may fail."
   echo "  Try: sudo systemctl restart docker"
