@@ -66,13 +66,21 @@ services:
       # Training config — sourced from env (set via libero_lora.env or openvla_lora.env)
       - DATASET_NAME=${DATASET_NAME:-bridge_orig}
       - DATA_ROOT_DIR=${DATA_ROOT_DIR:-datasets/open-x-embodiment}
+      - RUN_ROOT_DIR=${RUN_ROOT_DIR:-runs}
+      - ADAPTER_TMP_DIR=${ADAPTER_TMP_DIR:-adapter-tmp}
+      - VLA_PATH=${VLA_PATH:-openvla/openvla-7b}
       - MAX_STEPS=${MAX_STEPS:-200000}
       - SAVE_STEPS=${SAVE_STEPS:-5000}
       - SHUFFLE_BUFFER_SIZE=${SHUFFLE_BUFFER_SIZE:-100000}
       - BATCH_SIZE=${BATCH_SIZE:-16}
       - LEARNING_RATE=${LEARNING_RATE:-5e-4}
+      - GRAD_ACCUMULATION_STEPS=${GRAD_ACCUMULATION_STEPS:-1}
       - LORA_RANK=${LORA_RANK:-32}
+      - LORA_DROPOUT=${LORA_DROPOUT:-0.0}
+      - USE_LORA=${USE_LORA:-true}
+      - USE_QUANTIZATION=${USE_QUANTIZATION:-false}
       - IMAGE_AUG=${IMAGE_AUG:-true}
+      - SAVE_LATEST_CHECKPOINT_ONLY=${SAVE_LATEST_CHECKPOINT_ONLY:-true}
       - WANDB_PROJECT=${WANDB_PROJECT:-physicalai-openvla}
     volumes:
       - .:/workspace

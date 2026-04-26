@@ -25,7 +25,9 @@ if [ ! -f "pyproject.toml" ]; then
   cd physicalai
 fi
 
-git checkout feature/openvla-training-pipeline 2>/dev/null || true
+if ! git checkout feature/openvla-training-pipeline 2>/dev/null; then
+  echo "WARNING: could not switch to feature/openvla-training-pipeline — running on $(git branch --show-current)"
+fi
 
 # 2. Initialise submodules — Dockerfile.train COPYs third_party/ so this must run before docker build
 echo "Initialising git submodules..."
@@ -63,12 +65,18 @@ python3 scripts/download_dataset.py "$DATASET"
 echo "Building physicalai:train Docker image..."
 make docker-build-train
 
-# 8. Launch training via Docker
-echo "Starting LoRA fine-tuning inside Docker..."
+# 8. Pre-create output directories so Docker doesn't create them as root
+mkdir -p runs adapter-tmp
+
+# 9. Launch training via Docker
+# Preserve WANDB_ENTITY from the caller before sourcing the env file (which resets it to "")
+_WANDB_ENTITY="$WANDB_ENTITY"
 set -a
 source configs/training/libero_lora.env
 set +a
+WANDB_ENTITY="${_WANDB_ENTITY:-$WANDB_ENTITY}"
 
+echo "Starting LoRA fine-tuning inside Docker..."
 WANDB_API_KEY="$WANDB_KEY" \
 WANDB_ENTITY="$WANDB_ENTITY" \
 docker compose --profile gpu run --rm physicalai-train

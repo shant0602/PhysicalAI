@@ -105,7 +105,6 @@ def download_bridge(out_dir: Path, dry_run: bool) -> None:
 
 def download_oxe(
     dataset: str,
-    version: str,
     out_dir: Path,
     n_workers: int,
     skip_preprocess: bool,
@@ -130,11 +129,11 @@ def download_oxe(
 
     if not RLDS_MOD_SCRIPT.exists():
         print(
-            f"WARNING: rlds_dataset_mod not found at {RLDS_MOD_SCRIPT}.\n"
+            f"ERROR: rlds_dataset_mod not found at {RLDS_MOD_SCRIPT}.\n"
             "Run: make submodule-init",
             file=sys.stderr,
         )
-        return
+        sys.exit(1)
 
     processed = out_dir / f"{dataset}_processed"
     cmd = [
@@ -167,11 +166,6 @@ def main() -> None:
         default=None,
         help="Output directory (default: datasets/modified_libero_rlds for libero, datasets/open-x-embodiment for others)",
     )
-    parser.add_argument(
-        "--version",
-        default="0.1.0",
-        help="TFDS version for OXE gsutil downloads (default: 0.1.0)",
-    )
     parser.add_argument("--n_workers", type=int, default=8)
     parser.add_argument("--skip_preprocess", action="store_true")
     parser.add_argument("--dry_run", action="store_true")
@@ -186,7 +180,7 @@ def main() -> None:
     else:
         out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "datasets" / "open-x-embodiment"
         download_oxe(
-            args.dataset, args.version, out_dir,
+            args.dataset, out_dir,
             args.n_workers, args.skip_preprocess, args.dry_run,
         )
 

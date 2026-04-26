@@ -61,12 +61,17 @@ train-dry-run:
 
 # ── Evaluation ────────────────────────────────────────────────────────────────
 # Usage: make eval-libero CHECKPOINT=runs/<your-run-dir>
+ifndef CHECKPOINT
+eval-libero:
+	$(error CHECKPOINT is required: make eval-libero CHECKPOINT=runs/<your-run-dir>)
+else
 eval-libero:
 	python third_party/openvla/experiments/robot/libero/run_libero_eval.py \
 		--model_family openvla \
 		--pretrained_checkpoint $(CHECKPOINT) \
 		--task_suite_name libero_spatial \
 		--center_crop True
+endif
 
 # ── Deployment (calls OpenVLA's deploy.py via scripts/deploy.sh) ──────────────
 deploy:
@@ -96,10 +101,10 @@ docker-dev:
 	docker compose --profile gpu up physicalai-dev
 
 docker-shell:
-	docker compose --profile gpu run --rm physicalai bash
+	docker compose --profile gpu run --rm --entrypoint bash physicalai
 
 docker-cpu:
-	docker compose run --rm physicalai-cpu bash
+	docker compose run --rm --entrypoint bash physicalai-cpu
 
 docker-cpu-test:
 	docker compose run --rm physicalai-cpu pytest tests/unit/ -v
