@@ -55,6 +55,56 @@ make test        # Run test suite
 make lint        # Lint + type-check
 ```
 
+## LoRA Fine-Tuning on Lambda Labs
+
+Fine-tunes OpenVLA-7B on the [LIBERO](https://lifelong-robot-learning.github.io/LIBERO/) `libero_spatial` task suite (~10GB) using the official OpenVLA LoRA pipeline.
+
+### Prerequisites
+
+- Lambda Labs A100 instance (or any NVIDIA GPU with ≥27GB VRAM)
+- [W&B](https://wandb.ai) account for experiment tracking
+
+### One-command setup
+
+SSH into your Lambda instance and run:
+
+```bash
+REPO_URL=https://github.com/shant0602/PhysicalAI \
+WANDB_KEY=<your-wandb-api-key> \
+WANDB_ENTITY=<your-wandb-username> \
+bash <(curl -s https://raw.githubusercontent.com/shant0602/PhysicalAI/feature/openvla-training-pipeline/scripts/setup_lambda.sh)
+```
+
+This will:
+1. Clone the repo and initialise git submodules (OpenVLA, rlds_dataset_mod)
+2. Download the LIBERO dataset (~10GB via HuggingFace git-lfs)
+3. Build the `physicalai:train` Docker image (PyTorch 2.2, flash-attn, OpenVLA baked in)
+4. Launch LoRA fine-tuning inside Docker (~2-3 hrs on A100)
+
+Training config is in [`configs/training/libero_lora.env`](configs/training/libero_lora.env). Override any parameter inline:
+
+```bash
+MAX_STEPS=500 BATCH_SIZE=8 WANDB_ENTITY=myteam \
+bash <(curl -s .../setup_lambda.sh)
+```
+
+### After training — evaluate
+
+```bash
+make eval-libero CHECKPOINT=runs/<your-run-dir>
+```
+
+Runs the official LIBERO simulation benchmark and reports task success rate on `libero_spatial`.
+
+### Running locally (no Lambda)
+
+```bash
+make submodule-init
+make download-libero                     # ~10GB
+make docker-build-train
+make docker-train-libero WANDB_ENTITY=<your-username>
+```
+
 ## Roadmap
 
 - [ ] LLM backbone implementations
