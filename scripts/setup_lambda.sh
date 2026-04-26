@@ -48,8 +48,10 @@ if ! groups | grep -q docker; then
 fi
 
 if ! docker info 2>/dev/null | grep -q "Runtimes.*nvidia\|nvidia.*Runtimes"; then
-  echo "WARNING: nvidia runtime not detected in Docker. GPU access inside containers may fail."
-  echo "  Try: sudo systemctl restart docker"
+  echo "nvidia runtime not found — installing nvidia-container-toolkit..."
+  sudo apt-get install -y nvidia-container-toolkit
+  sudo nvidia-ctk runtime configure --runtime=docker
+  sudo systemctl restart docker
 fi
 
 # 4. Log in to W&B
