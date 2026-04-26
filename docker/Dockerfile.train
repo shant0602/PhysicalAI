@@ -37,12 +37,30 @@ RUN test -f third_party/openvla/pyproject.toml || \
     (echo "ERROR: third_party/openvla is empty — run: make submodule-init" && exit 1)
 
 # Install OpenVLA (their README: pip install -e .)
-# --no-deps avoids pip downgrading our torch==2.2.0 to their pinned 2.2.0 (same version, safe)
+# --no-deps avoids replacing tensorflow-cpu with tensorflow (GPU) from OpenVLA's dep list.
+# All other OpenVLA deps are installed explicitly below.
 RUN pip install -e third_party/openvla --no-deps
 
-# Remaining OpenVLA runtime deps (from their README)
-RUN pip install packaging ninja
-RUN pip install git+https://github.com/moojink/dlimp
+# OpenVLA runtime deps — everything from their pyproject.toml except torch/torchvision
+# (already pinned above) and tensorflow (using CPU variant installed above).
+RUN pip install \
+    draccus==0.8.0 \
+    timm==0.9.10 \
+    sentencepiece==0.1.99 \
+    tokenizers==0.19.1 \
+    transformers==4.40.1 \
+    peft==0.11.1 \
+    accelerate>=0.25.0 \
+    json-numpy \
+    jsonlines \
+    protobuf \
+    rich \
+    einops \
+    huggingface_hub \
+    matplotlib \
+    packaging \
+    ninja
+RUN pip install git+https://github.com/moojink/dlimp_openvla
 
 # flash-attn — exactly as OpenVLA's README instructs
 # CI uses a prebuilt wheel (see ci.yml ARG FLASH_ATTN_WHEEL)
