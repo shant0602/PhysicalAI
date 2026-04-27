@@ -1,7 +1,7 @@
-# Use the official PyTorch base image — torch==2.2.0 + CUDA 12.1 pre-installed and
-# properly linked. This avoids flash-attn ABI mismatches that occur when compiling
-# flash-attn against a pip-installed torch on a raw CUDA base image.
-FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-devel
+# NVIDIA multi-arch PyTorch container — supports linux/amd64 and linux/arm64 (GH200).
+# pytorch/pytorch:2.2.0 is amd64-only; nvcr.io/nvidia/pytorch:24.01-py3 ships
+# PyTorch 2.2.0 + CUDA 12.3.2 for both architectures.
+FROM nvcr.io/nvidia/pytorch:24.01-py3
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
