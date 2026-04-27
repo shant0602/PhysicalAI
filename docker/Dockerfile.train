@@ -19,11 +19,15 @@ RUN useradd -m -u 1000 appuser
 WORKDIR /workspace
 RUN chown appuser:appuser /workspace
 
-# TF CPU-only — avoids CUDA lib conflict with PyTorch.
-# RLDS/TFDS uses TF only to read tfrecords; all GPU work is PyTorch.
-RUN pip install \
-    tensorflow-cpu==2.15.0 \
-    tensorflow_datasets==4.9.3
+# TF for RLDS/TFDS data loading only — all GPU work is PyTorch.
+# tensorflow-cpu has no aarch64 wheel; on ARM64 the standard tensorflow package
+# is effectively CPU-only (no CUDA-enabled build on standard PyPI for aarch64).
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "aarch64" ]; then \
+        pip install tensorflow==2.15.0 tensorflow_datasets==4.9.3; \
+    else \
+        pip install tensorflow-cpu==2.15.0 tensorflow_datasets==4.9.3; \
+    fi
 
 # Guard: fail immediately with clear message if submodule was not initialised
 COPY --chown=appuser:appuser third_party/ ./third_party/
