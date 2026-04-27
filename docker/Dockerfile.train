@@ -59,6 +59,8 @@ RUN pip install \
     packaging \
     ninja
 RUN pip install git+https://github.com/moojink/dlimp_openvla
+# tensorflow-graphics is imported by droid_utils at module load time (even when not using DROID)
+RUN pip install tensorflow-graphics
 
 # Install physicalai with --no-deps to preserve the base image's torch.
 # The nvcr.io NVIDIA PyPI index can serve a torch compiled for a different CUDA version
