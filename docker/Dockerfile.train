@@ -74,15 +74,10 @@ RUN pip install -e "." --no-deps && \
         "pre-commit>=3.7" "ipykernel>=6.29"
 # bitsandbytes intentionally omitted — only needed for USE_QUANTIZATION=true (disabled)
 
-# flash-attn — compiled last so it links against whatever torch is actually installed.
-# GH200 = SM 9.0 (same die as H100); 8.0/8.6 retained for A100/A10 compatibility.
-ARG FLASH_ATTN_WHEEL=""
-ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;9.0"
-RUN if [ -n "$FLASH_ATTN_WHEEL" ]; then \
-        pip install "$FLASH_ATTN_WHEEL"; \
-    else \
-        pip install "flash-attn==2.5.5" --no-build-isolation; \
-    fi
+# flash-attn: the nvcr.io base ships an x86_64 .so that can't load on aarch64 (GH200).
+# Uninstall it so transformers falls back to standard attention (fine for LoRA on 480GB).
+# A correct aarch64 wheel can be added later once NVIDIA publishes one for this CUDA version.
+RUN pip uninstall flash-attn -y 2>/dev/null || true
 
 COPY --chown=appuser:appuser . .
 
