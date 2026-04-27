@@ -77,10 +77,10 @@ RUN pip install -e "." --no-deps && \
 # bitsandbytes intentionally omitted — only needed for USE_QUANTIZATION=true (disabled)
 
 # flash-attn: the nvcr.io base ships an x86_64 .so that can't load on aarch64 (GH200).
-# Uninstall the broken binary, then build from source for the current CUDA/PyTorch version.
-# Requires ninja (already installed above) and ~30-60 min compile time on first build.
+# Uninstall the broken binary, then build from source pinned to a version compatible with
+# PyTorch 2.2.0 (latest flash-attn uses post-2.2 APIs and fails to compile against torch 2.2).
 RUN pip uninstall flash-attn -y 2>/dev/null || true && \
-    pip install flash-attn --no-build-isolation
+    pip install "flash-attn==2.5.8" --no-build-isolation
 
 COPY --chown=appuser:appuser . .
 
