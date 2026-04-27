@@ -60,8 +60,15 @@ RUN pip install \
     ninja
 RUN pip install git+https://github.com/moojink/dlimp_openvla
 
-# flash-attn — exactly as OpenVLA's README instructs
-# CI uses a prebuilt wheel (see ci.yml ARG FLASH_ATTN_WHEEL)
+# Install physicalai inference + dev tools (not training — that's OpenVLA's job).
+# Done BEFORE flash-attn so that flash-attn compiles against the final torch version
+# (nvcr.io base + physicalai deps can shift torch; flash-attn must match exactly).
+COPY --chown=appuser:appuser pyproject.toml ./
+COPY --chown=appuser:appuser src/ ./src/
+RUN pip install -e ".[inference,dev]"
+
+# flash-attn — compiled last so it links against whatever torch is actually installed.
+# GH200 = SM 9.0 (same die as H100); 8.0/8.6 retained for A100/A10 compatibility.
 ARG FLASH_ATTN_WHEEL=""
 ENV TORCH_CUDA_ARCH_LIST="8.0;8.6;9.0"
 RUN if [ -n "$FLASH_ATTN_WHEEL" ]; then \
@@ -69,11 +76,6 @@ RUN if [ -n "$FLASH_ATTN_WHEEL" ]; then \
     else \
         pip install "flash-attn==2.5.5" --no-build-isolation; \
     fi
-
-# Install physicalai inference + dev tools (not training — that's OpenVLA's job)
-COPY --chown=appuser:appuser pyproject.toml ./
-COPY --chown=appuser:appuser src/ ./src/
-RUN pip install -e ".[inference,dev]"
 
 COPY --chown=appuser:appuser . .
 
