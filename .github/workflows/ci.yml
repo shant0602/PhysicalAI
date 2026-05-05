@@ -128,7 +128,7 @@ jobs:
           push: false
           # flash-attn build skipped in CI (no CUDA); passes --no-build-isolation
           build-args: |
-            FLASH_ATTN_VERSION=2.7.1.post4
+            FLASH_ATTN_VERSION=2.8.2
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: physicalai:train-groot

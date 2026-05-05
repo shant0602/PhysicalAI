@@ -32,19 +32,22 @@ COPY --chown=appuser:appuser third_party/isaac_groot/ ./third_party/isaac_groot/
 RUN test -f third_party/isaac_groot/pyproject.toml || \
     (echo "ERROR: third_party/isaac_groot is empty — run: make submodule-init" && exit 1)
 
-# Install Isaac-GR00T and its deps.
-# GR00T pins numpy<2.0 and transformers==4.51.3 — do NOT merge with OpenVLA deps.
-RUN pip install -e "third_party/isaac_groot[base]" --no-build-isolation
-
-# flash-attn: use a prebuilt wheel URL if FLASH_ATTN_WHEEL is set (x86 fast path, skips
-# ~20 min compile). Falls back to building from source, which works on any architecture.
+# flash-attn must be installed before Isaac-GR00T because GR00T pins flash-attn==2.8.2
+# exactly and pip will try to compile it as part of that install. Installing it first
+# lets us use a prebuilt wheel (fast) and pip skips it during the GR00T dep step.
+# FLASH_ATTN_WHEEL: optional prebuilt wheel URL for x86 (~5 sec vs ~20 min compile).
 ARG FLASH_ATTN_WHEEL=""
-ARG FLASH_ATTN_VERSION=2.7.1.post4
+ARG FLASH_ATTN_VERSION=2.8.2
 RUN if [ -n "$FLASH_ATTN_WHEEL" ]; then \
         pip install "$FLASH_ATTN_WHEEL"; \
     else \
         pip install "flash-attn==${FLASH_ATTN_VERSION}" --no-build-isolation; \
     fi
+
+# Install Isaac-GR00T and its deps.
+# GR00T pins numpy<2.0 and transformers==4.51.3 — do NOT merge with OpenVLA deps.
+# flash-attn==2.8.2 is already satisfied above; pip skips recompilation.
+RUN pip install -e "third_party/isaac_groot[base]" --no-build-isolation
 
 # Install physicalai package (config + utils only — no OpenVLA deps).
 COPY --chown=appuser:appuser pyproject.toml ./
