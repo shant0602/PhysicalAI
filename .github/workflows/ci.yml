@@ -78,7 +78,7 @@ jobs:
           cache-to: type=gha,mode=max
           tags: physicalai:latest
 
-  # ── Job 4: Training Docker build (only on push to main) ───────────────────
+  # ── Job 4: OpenVLA Training Docker build (only on push to main) ───────────
   docker-build-train:
     name: Docker Build (train)
     needs: lint
@@ -104,4 +104,32 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: physicalai:train
+        timeout-minutes: 60
+
+  # ── Job 5: GR00T Training Docker build (only on push to main) ─────────────
+  docker-build-groot:
+    name: Docker Build (train-groot)
+    needs: lint
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'    # required — populates third_party/isaac_groot
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build GR00T training image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.train.groot
+          push: false
+          # flash-attn build skipped in CI (no CUDA); passes --no-build-isolation
+          build-args: |
+            FLASH_ATTN_VERSION=2.7.1.post4
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: physicalai:train-groot
         timeout-minutes: 60

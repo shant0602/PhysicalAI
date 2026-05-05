@@ -97,6 +97,54 @@ services:
     #   docker compose --profile gpu run --rm physicalai-train
     command: scripts/train.sh
 
+  # ── GR00T N1.5 LoRA fine-tuning (GPU only) ───────────────────────────────
+  # Use: make docker-train-groot WANDB_ENTITY=myteam
+  #  or: set -a && source configs/training/groot_lora.env && set +a
+  #      docker compose --profile gpu run --rm physicalai-train-groot
+  physicalai-train-groot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.train.groot
+      args:
+        FLASH_ATTN_VERSION: "2.7.1.post4"
+    image: physicalai:train-groot
+    runtime: nvidia
+    profiles: [gpu]
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - HF_HOME=/home/appuser/.cache/huggingface
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+      - WANDB_ENTITY=${WANDB_ENTITY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - NUM_GPUS=${NUM_GPUS:-1}
+      # Training config — sourced from configs/training/groot_lora.env
+      - GROOT_MODEL_PATH=${GROOT_MODEL_PATH:-nvidia/GR00T-N1.5-3B}
+      - EMBODIMENT_TAG=${EMBODIMENT_TAG:-gr1}
+      - DATA_CONFIG=${DATA_CONFIG:-fourier_gr1_arms_only}
+      - DATASET_PATH=${DATASET_PATH:-/workspace/datasets/gr1_arms_only.CanSort}
+      - OUTPUT_DIR=${OUTPUT_DIR:-/workspace/checkpoints/gr00t_lora_cansort}
+      - MAX_STEPS=${MAX_STEPS:-20000}
+      - BATCH_SIZE=${BATCH_SIZE:-16}
+      - SAVE_STEPS=${SAVE_STEPS:-2000}
+      - LEARNING_RATE=${LEARNING_RATE:-1e-4}
+      - GRAD_ACCUMULATION_STEPS=${GRAD_ACCUMULATION_STEPS:-1}
+      - LORA_RANK=${LORA_RANK:-64}
+      - LORA_ALPHA=${LORA_ALPHA:-128}
+      - LORA_DROPOUT=${LORA_DROPOUT:-0.1}
+      - TUNE_DIFFUSION_MODEL=${TUNE_DIFFUSION_MODEL:-false}
+      - WANDB_PROJECT=${WANDB_PROJECT:-physicalai-groot}
+      - VIDEO_BACKEND=${VIDEO_BACKEND:-torchvision_av}
+    volumes:
+      - .:/workspace
+      - hf-cache:/home/appuser/.cache/huggingface
+      - ./checkpoints:/workspace/checkpoints
+      - ${GROOT_DATASET_DIR:-~/gr00t_dataset}:/workspace/datasets
+    working_dir: /workspace
+    ipc: host
+    shm_size: "16gb"
+    command: scripts/train_groot.sh
+
   # ── CPU-only (Mac local dev — import/config/unit testing, no GPU needed) ──
   # Use: docker compose run --rm physicalai-cpu pytest tests/ -v
   physicalai-cpu:

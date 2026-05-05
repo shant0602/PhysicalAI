@@ -9,6 +9,8 @@ import yaml
 
 _log = logging.getLogger(__name__)
 
+__all__ = ["OpenVLAConfig", "GROOTConfig"]
+
 # Devices that do not support bfloat16/float16 reliably
 _NON_CUDA_DEVICES = ("cpu", "mps")
 
@@ -42,3 +44,30 @@ class OpenVLAConfig:
             warnings.warn(msg, stacklevel=2)
             _log.warning(msg)
             self.dtype = "float32"
+
+
+@dataclasses.dataclass
+class GROOTConfig:
+    model_id: str = "nvidia/GR00T-N1.5-3B"
+    embodiment_tag: str = "gr1"
+    data_config: str = "fourier_gr1_arms_only"
+    device: str = "cuda:0"
+    dtype: Literal["bfloat16", "float16", "float32"] = "bfloat16"
+    quantize: bool = False
+    denoising_steps: int = 4
+
+    @classmethod
+    def from_yaml(cls, path: str) -> GROOTConfig:
+        with open(path) as f:
+            data = yaml.safe_load(f)
+        return cls(**data)
+
+    def validate(self) -> None:
+        # GR00T's diffusion action head requires CUDA — CPU inference is not supported
+        if not self.device.startswith("cuda"):
+            raise ValueError(
+                f"GROOTConfig: device must be 'cuda:N'. Got '{self.device}'. "
+                "GR00T's diffusion action head requires a CUDA device."
+            )
+        if self.denoising_steps < 1:
+            raise ValueError(f"denoising_steps must be >= 1, got {self.denoising_steps}")
