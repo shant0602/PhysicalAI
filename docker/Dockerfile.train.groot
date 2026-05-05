@@ -52,7 +52,7 @@ RUN pip install -e "third_party/isaac_groot[base]" --no-build-isolation
 # GR00T's base extra installs opencv-python-headless==4.11.0.86, whose typing stubs
 # reference cv2.dnn.DictValue which was removed from the dnn module. Downgrade to
 # 4.9.0.80 which predates this regression, while still meeting GR00T's runtime needs.
-RUN pip install "opencv-python-headless==4.9.0.80" --force-reinstall
+RUN pip install "opencv-python-headless==4.9.0.80" "numpy<2.0" --force-reinstall
 
 # Install physicalai package (config + utils only — no OpenVLA deps).
 COPY --chown=appuser:appuser pyproject.toml ./
