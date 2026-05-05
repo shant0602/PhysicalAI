@@ -60,7 +60,7 @@ class OpenVLAModel:
         self._model = AutoModelForVision2Seq.from_pretrained(config.model_id, **load_kwargs)
 
         if not config.quantize:
-            self._model = self._model.to(config.device)
+            self._model = self._model.to(config.device)  # type: ignore[union-attr]
 
         # Quiet down HuggingFace verbosity after load
         logging.getLogger("transformers").setLevel(logging.WARNING)
@@ -92,7 +92,7 @@ class OpenVLAModel:
         key = unnorm_key or self._config.unnorm_key
         prompt = _PROMPT_TEMPLATE.format(instruction=instruction)
 
-        inputs = self._processor(text=prompt, images=image, return_tensors="pt")
+        inputs = self._processor(text=prompt, images=image, return_tensors="pt")  # type: ignore[operator]
 
         # Quantized models handle dtype internally — only cast for non-quantized
         if not self._config.quantize:
@@ -101,7 +101,7 @@ class OpenVLAModel:
         else:
             inputs = inputs.to(self._config.device)
 
-        action: np.ndarray = self._model.predict_action(
+        action: np.ndarray = self._model.predict_action(  # type: ignore[attr-defined]
             **inputs, unnorm_key=key, do_sample=False
         )
         return action

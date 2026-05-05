@@ -36,6 +36,7 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
     "mypy>=1.9",
+    "types-PyYAML>=6.0",
     "pre-commit>=3.7",
     "ipykernel>=6.29",
 ]
@@ -75,8 +76,6 @@ target-version = "py310"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
-[tool.ruff.lint.per-file-ignores]
-"scripts/finetune.py" = ["E501"]  # upstream OpenVLA script — long lines preserved intentionally
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
