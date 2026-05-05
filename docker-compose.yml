@@ -113,7 +113,7 @@ services:
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
-      - HF_HOME=/home/appuser/.cache/huggingface
+      - HF_HOME=/root/.cache/huggingface
       - WANDB_API_KEY=${WANDB_API_KEY:-}
       - WANDB_ENTITY=${WANDB_ENTITY:-}
       - HF_TOKEN=${HF_TOKEN:-}
@@ -135,9 +135,10 @@ services:
       - TUNE_DIFFUSION_MODEL=${TUNE_DIFFUSION_MODEL:-false}
       - WANDB_PROJECT=${WANDB_PROJECT:-physicalai-groot}
       - VIDEO_BACKEND=${VIDEO_BACKEND:-torchvision_av}
+    user: root                                       # avoids hf-cache volume permission issues
     volumes:
       - .:/workspace
-      - hf-cache:/home/appuser/.cache/huggingface
+      - hf-cache:/root/.cache/huggingface
       - ./checkpoints:/workspace/checkpoints
       - ${GROOT_DATASET_DIR:-~/gr00t_dataset}:/workspace/datasets
     working_dir: /workspace
