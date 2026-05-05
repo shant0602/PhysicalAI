@@ -99,6 +99,7 @@ def main() -> None:
 
     # Heavy imports — torch and model chain — only after config is validated
     from PIL import Image
+
     from physicalai.inference import ACTION_AXES, OpenVLAPolicy
     from physicalai.models.vla import OpenVLAModel
 

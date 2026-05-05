@@ -164,7 +164,10 @@ def main() -> None:
     parser.add_argument(
         "--out_dir",
         default=None,
-        help="Output directory (default: datasets/modified_libero_rlds for libero, datasets/open-x-embodiment for others)",
+        help=(
+            "Output directory (default: datasets/modified_libero_rlds for libero,"
+            " datasets/open-x-embodiment for others)"
+        ),
     )
     parser.add_argument("--n_workers", type=int, default=8)
     parser.add_argument("--skip_preprocess", action="store_true")
@@ -175,10 +178,12 @@ def main() -> None:
         out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "datasets"
         download_libero(out_dir, args.dry_run)
     elif args.dataset == "bridge_orig":
-        out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "datasets" / "open-x-embodiment"
+        default_dir = REPO_ROOT / "datasets" / "open-x-embodiment"
+        out_dir = Path(args.out_dir) if args.out_dir else default_dir
         download_bridge(out_dir, args.dry_run)
     else:
-        out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "datasets" / "open-x-embodiment"
+        default_dir = REPO_ROOT / "datasets" / "open-x-embodiment"
+        out_dir = Path(args.out_dir) if args.out_dir else default_dir
         download_oxe(
             args.dataset, out_dir,
             args.n_workers, args.skip_preprocess, args.dry_run,

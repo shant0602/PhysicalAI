@@ -4,9 +4,8 @@ from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
-from PIL import Image
 
-from physicalai.inference.policy import ACTION_AXES, OpenVLAPolicy
+from physicalai.inference.policy import OpenVLAPolicy
 
 
 @pytest.fixture

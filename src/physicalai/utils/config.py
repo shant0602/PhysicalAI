@@ -22,7 +22,7 @@ class OpenVLAConfig:
     dtype: Literal["bfloat16", "float16", "float32"] = "bfloat16"
 
     @classmethod
-    def from_yaml(cls, path: str) -> "OpenVLAConfig":
+    def from_yaml(cls, path: str) -> OpenVLAConfig:
         with open(path) as f:
             data = yaml.safe_load(f)
         return cls(**data)

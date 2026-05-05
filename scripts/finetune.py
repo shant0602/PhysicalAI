@@ -23,31 +23,33 @@ import os
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import draccus
 import torch
 import torch.distributed as dist
 import tqdm
+import wandb
 from accelerate import PartialState
 from peft import LoraConfig, PeftModel, get_peft_model, prepare_model_for_kbit_training
-from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.optim import AdamW
-from torch.utils.data import DataLoader
-from transformers import AutoModelForVision2Seq, AutoProcessor, BitsAndBytesConfig
-from transformers import AutoConfig, AutoImageProcessor
-from transformers.modeling_outputs import CausalLMOutputWithPast
-
-import wandb
+from prismatic.extern.hf.configuration_prismatic import OpenVLAConfig
+from prismatic.extern.hf.modeling_prismatic import OpenVLAForActionPrediction
+from prismatic.extern.hf.processing_prismatic import PrismaticImageProcessor, PrismaticProcessor
 from prismatic.models.backbones.llm.prompting import PurePromptBuilder, VicunaV15ChatPromptBuilder
 from prismatic.util.data_utils import PaddedCollatorForActionPrediction
 from prismatic.vla.action_tokenizer import ActionTokenizer
 from prismatic.vla.datasets import RLDSBatchTransform, RLDSDataset
 from prismatic.vla.datasets.rlds.utils.data_utils import save_dataset_statistics
-
-from prismatic.extern.hf.configuration_prismatic import OpenVLAConfig
-from prismatic.extern.hf.modeling_prismatic import OpenVLAForActionPrediction
-from prismatic.extern.hf.processing_prismatic import PrismaticImageProcessor, PrismaticProcessor
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
+from transformers import (
+    AutoConfig,
+    AutoImageProcessor,
+    AutoModelForVision2Seq,
+    AutoProcessor,
+    BitsAndBytesConfig,
+)
+from transformers.modeling_outputs import CausalLMOutputWithPast
 
 # Sane Defaults
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -105,7 +107,7 @@ class FinetuneConfig:
     # Tracking Parameters
     wandb_project: str = "openvla"                                  # Name of W&B project to log to (use default!)
     wandb_entity: str = "stanford-voltron"                          # Name of entity to log under
-    run_id_note: Optional[str] = None                               # Extra note for logging, Weights & Biases
+    run_id_note: str | None = None                               # Extra note for logging, Weights & Biases
 
     # fmt: on
 

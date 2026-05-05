@@ -3,12 +3,14 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-import torch
 import pytest
-from PIL import Image
+import torch
 
-from physicalai.models.vla.openvla import OpenVLAModel, _PROMPT_TEMPLATE
+from physicalai.models.vla.openvla import _PROMPT_TEMPLATE, OpenVLAModel
 from physicalai.utils.config import OpenVLAConfig
+
+_PATCH_PROC = "physicalai.models.vla.openvla.AutoProcessor.from_pretrained"
+_PATCH_MODEL = "physicalai.models.vla.openvla.AutoModelForVision2Seq.from_pretrained"
 
 
 @pytest.fixture
@@ -29,8 +31,7 @@ def test_predict_raises_before_load(cpu_config, dummy_image):
 
 
 def test_load_returns_self(cpu_config):
-    with patch("physicalai.models.vla.openvla.AutoProcessor.from_pretrained") as mock_proc, \
-         patch("physicalai.models.vla.openvla.AutoModelForVision2Seq.from_pretrained") as mock_model:
+    with patch(_PATCH_PROC) as mock_proc, patch(_PATCH_MODEL) as mock_model:
         mock_model.return_value = MagicMock()
         mock_model.return_value.to.return_value = mock_model.return_value
         mock_proc.return_value = MagicMock()
@@ -41,8 +42,7 @@ def test_load_returns_self(cpu_config):
 
 
 def test_load_calls_from_pretrained_with_correct_dtype(cpu_config):
-    with patch("physicalai.models.vla.openvla.AutoProcessor.from_pretrained") as mock_proc, \
-         patch("physicalai.models.vla.openvla.AutoModelForVision2Seq.from_pretrained") as mock_model:
+    with patch(_PATCH_PROC) as mock_proc, patch(_PATCH_MODEL) as mock_model:
         mock_model.return_value = MagicMock()
         mock_model.return_value.to.return_value = mock_model.return_value
         mock_proc.return_value = MagicMock()
@@ -57,8 +57,7 @@ def test_load_calls_from_pretrained_with_correct_dtype(cpu_config):
 
 def test_load_calls_from_pretrained_bfloat16():
     cfg = OpenVLAConfig(device="cpu", dtype="bfloat16", quantize=False)
-    with patch("physicalai.models.vla.openvla.AutoProcessor.from_pretrained"), \
-         patch("physicalai.models.vla.openvla.AutoModelForVision2Seq.from_pretrained") as mock_model:
+    with patch(_PATCH_PROC), patch(_PATCH_MODEL) as mock_model:
         mock_model.return_value = MagicMock()
         mock_model.return_value.to.return_value = mock_model.return_value
 
@@ -69,8 +68,7 @@ def test_load_calls_from_pretrained_bfloat16():
 
 
 def test_predict_returns_ndarray(cpu_config, dummy_image):
-    with patch("physicalai.models.vla.openvla.AutoProcessor.from_pretrained") as mock_proc, \
-         patch("physicalai.models.vla.openvla.AutoModelForVision2Seq.from_pretrained") as mock_model_cls:
+    with patch(_PATCH_PROC) as mock_proc, patch(_PATCH_MODEL) as mock_model_cls:
 
         fake_action = np.array([0.1, 0.2, 0.3, 0.0, 0.0, 0.0, 1.0], dtype=np.float32)
         fake_model = MagicMock()

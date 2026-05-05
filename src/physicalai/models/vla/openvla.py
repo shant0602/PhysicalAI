@@ -26,7 +26,7 @@ class OpenVLAModel:
         self._processor: AutoProcessor | None = None
         self._model: AutoModelForVision2Seq | None = None
 
-    def load(self) -> "OpenVLAModel":
+    def load(self) -> OpenVLAModel:
         """Load processor and model from HuggingFace. Returns self for chaining."""
         config = self._config
 
