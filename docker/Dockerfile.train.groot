@@ -36,10 +36,15 @@ RUN test -f third_party/isaac_groot/pyproject.toml || \
 # GR00T pins numpy<2.0 and transformers==4.51.3 — do NOT merge with OpenVLA deps.
 RUN pip install -e "third_party/isaac_groot[base]" --no-build-isolation
 
-# flash-attn: GR00T N1.5 requires 2.7.x for compatibility with its attention patterns.
-# Build from source since pre-built wheels may not match the container's CUDA/PyTorch ABI.
+# flash-attn: use a prebuilt wheel URL if FLASH_ATTN_WHEEL is set (x86 fast path, skips
+# ~20 min compile). Falls back to building from source, which works on any architecture.
+ARG FLASH_ATTN_WHEEL=""
 ARG FLASH_ATTN_VERSION=2.7.1.post4
-RUN pip install "flash-attn==${FLASH_ATTN_VERSION}" --no-build-isolation
+RUN if [ -n "$FLASH_ATTN_WHEEL" ]; then \
+        pip install "$FLASH_ATTN_WHEEL"; \
+    else \
+        pip install "flash-attn==${FLASH_ATTN_VERSION}" --no-build-isolation; \
+    fi
 
 # Install physicalai package (config + utils only — no OpenVLA deps).
 COPY --chown=appuser:appuser pyproject.toml ./
