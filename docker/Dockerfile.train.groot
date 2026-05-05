@@ -1,5 +1,5 @@
 # GR00T N1.5 training image.
-# Same NVIDIA PyTorch base as Dockerfile.train (PyTorch 2.2 + CUDA 12.3).
+# Base: nvcr.io/nvidia/pytorch:24.08-py3 (PyTorch 2.4, CUDA 12.6).
 # Installs Isaac-GR00T deps separately — not compatible with OpenVLA deps.
 #
 # Build:
@@ -48,6 +48,11 @@ RUN if [ -n "$FLASH_ATTN_WHEEL" ]; then \
 # GR00T pins numpy<2.0 and transformers==4.51.3 — do NOT merge with OpenVLA deps.
 # flash-attn==2.8.2 is already satisfied above; pip skips recompilation.
 RUN pip install -e "third_party/isaac_groot[base]" --no-build-isolation
+
+# GR00T's base extra installs opencv-python-headless==4.11.0.86, whose typing stubs
+# reference cv2.dnn.DictValue which was removed from the dnn module. Downgrade to
+# 4.9.0.80 which predates this regression, while still meeting GR00T's runtime needs.
+RUN pip install "opencv-python-headless==4.9.0.80" --force-reinstall
 
 # Install physicalai package (config + utils only — no OpenVLA deps).
 COPY --chown=appuser:appuser pyproject.toml ./
