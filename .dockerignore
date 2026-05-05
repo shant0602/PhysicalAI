@@ -1,0 +1,51 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ML artifacts (weights, checkpoints — mounted as volumes instead)
+experiments/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+wandb/
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/
+
+# Data (large — mount separately)
+data/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Secrets — all variants
+.env
+.env.*
+.env.local
+.env.production
+secrets/
+secrets.yaml
+secrets.yml
+*.pem
+*.key
+
+# Training outputs
+datasets/
+runs/
+adapter-tmp/
+checkpoints/

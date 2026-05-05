@@ -1,0 +1,12 @@
+# third_party/ must NOT be ignored — Dockerfile.train COPYs it to bake OpenVLA into the image
+datasets/
+runs/
+adapter-tmp/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+wandb/
+.venv/
+__pycache__/
+*.pyc

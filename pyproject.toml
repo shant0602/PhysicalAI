@@ -1,12 +1,12 @@
 [build-system]
 requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "physicalai"
 version = "0.1.0"
 description = "Embodied AI research: LLMs, VLMs, and Vision Language Action models"
-authors = [{ name = "Shantanu Singh", email = "shant0602@github" }]
+authors = [{ name = "Shantanu Singh" }]
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.10"
 dependencies = [
@@ -15,7 +15,7 @@ dependencies = [
     "torchvision>=0.17",
     "numpy>=1.26",
     "einops>=0.7",
-    "transformers>=4.40",
+    "transformers>=4.40,<5.0",
 
     # Config management
     "hydra-core>=1.3",
@@ -27,6 +27,7 @@ dependencies = [
     # Utilities
     "tqdm>=4.66",
     "Pillow>=10.0",
+    "pyyaml>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -35,8 +36,29 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.4",
     "mypy>=1.9",
+    "types-PyYAML>=6.0",
     "pre-commit>=3.7",
     "ipykernel>=6.29",
+]
+inference = [
+    "accelerate>=0.27",
+    "bitsandbytes>=0.43",
+    "peft>=0.10",
+    # 'datasets' removed — OpenVLA uses RLDS/TFDS not HuggingFace datasets
+]
+train = [
+    # Deps matching third_party/openvla requirements.
+    # Also run: pip install -e third_party/openvla --no-deps
+    # And:      pip install flash-attn==2.5.5 --no-build-isolation
+    "tensorflow-cpu==2.15.0",
+    "tensorflow_datasets==4.9.3",
+    "dlimp @ git+https://github.com/moojink/dlimp_openvla",
+    "transformers==4.40.1",
+    "peft==0.11.1",
+    "draccus==0.8.0",
+    "timm==0.9.10",
+    "sentencepiece==0.1.99",
+    "accelerate>=0.27",
 ]
 robot = [
     # Add simulator / hardware deps here, e.g.:
@@ -53,6 +75,11 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --cov=src --cov-report=term-missing --cov-fail-under=70"
 
 [tool.mypy]
 python_version = "3.10"

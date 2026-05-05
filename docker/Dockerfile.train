@@ -1,0 +1,94 @@
+# NVIDIA multi-arch PyTorch container — supports linux/amd64 and linux/arm64 (GH200).
+# pytorch/pytorch:2.2.0 is amd64-only; nvcr.io/nvidia/pytorch:24.01-py3 ships
+# PyTorch 2.2.0 + CUDA 12.3.2 for both architectures.
+FROM nvcr.io/nvidia/pytorch:24.01-py3
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# ninja-build + cmake required for flash-attn compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl libgl1 libglib2.0-0 \
+    build-essential ninja-build cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade pip
+
+RUN useradd -m -u 1000 appuser
+WORKDIR /workspace
+RUN chown appuser:appuser /workspace
+
+# TF for RLDS/TFDS data loading only — all GPU work is PyTorch.
+# tensorflow-cpu has no aarch64 wheel; on ARM64 the standard tensorflow package
+# is effectively CPU-only (no CUDA-enabled build on standard PyPI for aarch64).
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "aarch64" ]; then \
+        pip install tensorflow==2.15.0 tensorflow_datasets==4.9.3; \
+    else \
+        pip install tensorflow-cpu==2.15.0 tensorflow_datasets==4.9.3; \
+    fi
+
+# Guard: fail immediately with clear message if submodule was not initialised
+COPY --chown=appuser:appuser third_party/ ./third_party/
+RUN test -f third_party/openvla/pyproject.toml || \
+    (echo "ERROR: third_party/openvla is empty — run: make submodule-init" && exit 1)
+
+# Install OpenVLA (their README: pip install -e .)
+# --no-deps avoids replacing tensorflow-cpu with tensorflow (GPU) from OpenVLA's dep list.
+# All other OpenVLA deps are installed explicitly below.
+RUN pip install -e third_party/openvla --no-deps
+
+# OpenVLA runtime deps — everything from their pyproject.toml except torch/torchvision
+# (already pinned above) and tensorflow (using CPU variant installed above).
+RUN pip install \
+    draccus==0.8.0 \
+    timm==0.9.10 \
+    sentencepiece==0.1.99 \
+    tokenizers==0.19.1 \
+    transformers==4.40.1 \
+    peft==0.11.1 \
+    accelerate>=0.25.0 \
+    json-numpy \
+    jsonlines \
+    protobuf \
+    rich \
+    einops \
+    huggingface_hub \
+    matplotlib \
+    packaging \
+    ninja
+RUN pip install git+https://github.com/moojink/dlimp_openvla
+# tensorflow-graphics is imported by droid_utils at module load time (even when not using DROID)
+RUN pip install tensorflow-graphics
+
+# Install physicalai with --no-deps to preserve the base image's torch.
+# The nvcr.io NVIDIA PyPI index can serve a torch compiled for a different CUDA version
+# than the container toolkit, which breaks flash-attn compilation.
+# We install physicalai's non-torch extras manually below.
+COPY --chown=appuser:appuser pyproject.toml ./
+COPY --chown=appuser:appuser src/ ./src/
+RUN pip install -e "." --no-deps && \
+    pip install \
+        "hydra-core>=1.3" "omegaconf>=2.3" "wandb>=0.16" "tqdm>=4.66" \
+        "Pillow>=10.0" "pyyaml>=6.0" "einops>=0.7" \
+        "pytest>=8.0" "pytest-cov>=5.0" "ruff>=0.4" "mypy>=1.9" \
+        "pre-commit>=3.7" "ipykernel>=6.29"
+# bitsandbytes intentionally omitted — only needed for USE_QUANTIZATION=true (disabled)
+
+# flash-attn: the nvcr.io base ships an x86_64 .so that can't load on aarch64 (GH200).
+# Uninstall the broken binary, then build from source pinned to a version compatible with
+# PyTorch 2.2.0 (latest flash-attn uses post-2.2 APIs and fails to compile against torch 2.2).
+RUN pip uninstall flash-attn -y 2>/dev/null || true && \
+    pip install "flash-attn==2.5.8" --no-build-isolation
+
+COPY --chown=appuser:appuser . .
+
+USER appuser
+ENV HF_HOME=/home/appuser/.cache/huggingface
+VOLUME ["/home/appuser/.cache/huggingface"]
+VOLUME ["/workspace/datasets"]
+VOLUME ["/workspace/runs"]
+
+ENTRYPOINT ["/bin/bash"]
+CMD ["scripts/train.sh", "--help"]

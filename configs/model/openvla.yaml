@@ -1,0 +1,9 @@
+# OpenVLA inference configuration
+# Load with: OpenVLAConfig.from_yaml("configs/model/openvla.yaml")
+# Field names must match OpenVLAConfig dataclass exactly.
+
+model_id: "openvla/openvla-7b"
+device: "cuda:0"
+quantize: false
+unnorm_key: "bridge_orig"
+dtype: "bfloat16"
