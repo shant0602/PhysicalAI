@@ -1,0 +1,61 @@
+# GR00T N1.5 training image.
+# Same NVIDIA PyTorch base as Dockerfile.train (PyTorch 2.2 + CUDA 12.3).
+# Installs Isaac-GR00T deps separately — not compatible with OpenVLA deps.
+#
+# Build:
+#   make docker-build-groot
+#   # or: docker build -f docker/Dockerfile.train.groot -t physicalai:train-groot .
+#
+# Run (set env vars first via configs/training/groot_lora.env):
+#   make docker-train-groot WANDB_ENTITY=myteam
+FROM nvcr.io/nvidia/pytorch:24.01-py3
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# ffmpeg + av required for torchvision_av video backend; libgl for opencv
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl ffmpeg \
+    libgl1 libglib2.0-0 \
+    build-essential ninja-build cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade pip
+
+RUN useradd -m -u 1000 appuser
+WORKDIR /workspace
+RUN chown appuser:appuser /workspace
+
+# Guard: submodule must be present
+COPY --chown=appuser:appuser third_party/isaac_groot/ ./third_party/isaac_groot/
+RUN test -f third_party/isaac_groot/pyproject.toml || \
+    (echo "ERROR: third_party/isaac_groot is empty — run: make submodule-init" && exit 1)
+
+# Install Isaac-GR00T and its deps.
+# GR00T pins numpy<2.0 and transformers==4.51.3 — do NOT merge with OpenVLA deps.
+RUN pip install -e "third_party/isaac_groot[base]" --no-build-isolation
+
+# flash-attn: GR00T N1.5 requires 2.7.x for compatibility with its attention patterns.
+# Build from source since pre-built wheels may not match the container's CUDA/PyTorch ABI.
+ARG FLASH_ATTN_VERSION=2.7.1.post4
+RUN pip install "flash-attn==${FLASH_ATTN_VERSION}" --no-build-isolation
+
+# Install physicalai package (config + utils only — no OpenVLA deps).
+COPY --chown=appuser:appuser pyproject.toml ./
+COPY --chown=appuser:appuser src/ ./src/
+RUN pip install -e "." --no-deps && \
+    pip install \
+        "hydra-core>=1.3" "omegaconf>=2.3" "tqdm>=4.66" \
+        "Pillow>=10.0" "pyyaml>=6.0" "einops>=0.7"
+
+COPY --chown=appuser:appuser . .
+
+USER appuser
+ENV HF_HOME=/home/appuser/.cache/huggingface
+VOLUME ["/home/appuser/.cache/huggingface"]
+VOLUME ["/workspace/datasets"]
+VOLUME ["/workspace/checkpoints"]
+
+ENTRYPOINT ["/bin/bash"]
+CMD ["scripts/train_groot.sh", "--help"]

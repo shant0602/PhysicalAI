@@ -1,0 +1,7 @@
+model_id: nvidia/GR00T-N1.5-3B
+embodiment_tag: gr1
+data_config: fourier_gr1_arms_only
+device: cuda:0
+dtype: bfloat16
+quantize: false
+denoising_steps: 4

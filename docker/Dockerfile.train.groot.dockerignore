@@ -1,0 +1,28 @@
+# Excludes for GR00T training image.
+# We only need third_party/isaac_groot — not openvla or rlds_dataset_mod.
+third_party/openvla
+third_party/rlds_dataset_mod
+
+# Runtime artefacts
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+.coverage
+dist/
+build/
+
+# Data & outputs (mounted as volumes at runtime)
+datasets/
+runs/
+checkpoints/
+adapter-tmp/
+experiments/
+
+# Local dev
+.env
+.venv/
+.git/

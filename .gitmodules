@@ -4,3 +4,6 @@
 [submodule "third_party/rlds_dataset_mod"]
 	path = third_party/rlds_dataset_mod
 	url = https://github.com/moojink/rlds_dataset_mod
+[submodule "third_party/isaac_groot"]
+	path = third_party/isaac_groot
+	url = https://github.com/NVIDIA/Isaac-GR00T
