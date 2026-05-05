@@ -20,7 +20,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FINETUNE_SCRIPT="$REPO_ROOT/scripts/finetune.py"
+FINETUNE_SCRIPT="$REPO_ROOT/third_party/openvla/vla-scripts/finetune.py"
 
 if [ ! -f "$FINETUNE_SCRIPT" ]; then
     echo "ERROR: OpenVLA fine-tuning script not found at $FINETUNE_SCRIPT"

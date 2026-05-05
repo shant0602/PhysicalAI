@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-FINETUNE_PY = Path(__file__).parents[2] / "scripts" / "finetune.py"
+FINETUNE_PY = Path(__file__).parents[2] / "third_party" / "openvla" / "vla-scripts" / "finetune.py"
 TRAIN_SH = Path(__file__).parents[2] / "scripts" / "train.sh"
 
 
@@ -117,12 +117,9 @@ def test_finetune_config_has_lora_fields():
 # train.sh wiring test
 # ---------------------------------------------------------------------------
 
-def test_train_sh_uses_local_finetune_not_submodule():
-    """train.sh must point to scripts/finetune.py, not the submodule copy."""
+def test_train_sh_uses_submodule_finetune():
+    """train.sh must point to the submodule's finetune.py (third_party/openvla/vla-scripts/)."""
     content = TRAIN_SH.read_text()
-    assert 'FINETUNE_SCRIPT="$REPO_ROOT/scripts/finetune.py"' in content, (
-        "train.sh FINETUNE_SCRIPT must point to scripts/finetune.py (not the submodule copy)"
-    )
-    assert "third_party" not in content.split("FINETUNE_SCRIPT=")[1].split("\n")[0], (
-        "train.sh FINETUNE_SCRIPT must not point into third_party/"
+    assert 'FINETUNE_SCRIPT="$REPO_ROOT/third_party/openvla/vla-scripts/finetune.py"' in content, (
+        "train.sh FINETUNE_SCRIPT must point to third_party/openvla/vla-scripts/finetune.py"
     )
